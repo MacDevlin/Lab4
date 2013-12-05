@@ -1,5 +1,5 @@
 import java.io.IOException;
-
+import mpi.*;
 
 public class Server {
 	
@@ -84,7 +84,10 @@ public class Server {
 		}
 	}
 	
-	public static void main (String args[]) {
+	public static void main (String args[]) throws MPIException {
+		//MPI.Init(args);
+		//int rank = MPI.COMM_WORLD.getRank();
+		//int size = MPI.COMM_WORLD.getSize();
 		startShell();
 	}
 }
