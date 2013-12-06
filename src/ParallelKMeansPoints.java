@@ -25,9 +25,11 @@ public class ParallelKMeansPoints {
 		return maxHeight;
 	}
 	
-	public Point[] runServer(Point[] ps, int k, int width, int height) throws MPIException {
+	public Point[] runServer(Point[] ps, int k) throws MPIException {
 		int size = MPI.COMM_WORLD.Size();
 		int totalPoints = ps.length;
+		float width = getMaxWidth(ps);
+		float height = getMaxHeight(ps);
 		//make the initial centroids
 		DataGenerator dg = new DataGenerator();
 		Point[] cs = dg.generatePoints(k, width, height);

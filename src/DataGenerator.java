@@ -1,3 +1,8 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
 
 public class DataGenerator {
 
@@ -11,6 +16,33 @@ public class DataGenerator {
 			points[i] = p;
 		}
 		return points;
+	}
+	
+	
+	public void generatePointsToFile(int n, String filename, int width, int height) throws IOException {
+		Point[] points = generatePoints(n,width,height);
+		File f = new File(filename);
+		if(f.exists()) {
+			f.delete();
+		}
+		FileOutputStream fout = new FileOutputStream(f);
+		for(int p=0; p<points.length; p++) {
+			String s = points[p].x + "," + points[p].y + "\n";
+			fout.write(s.getBytes());
+		}
+	}
+	
+	public void generateDNAToFile(int n, String filename, int length) throws IOException {
+		DNA[] dna = generateDNA(n,length);
+		File f = new File(filename);
+		if(f.exists()) {
+			f.delete();
+		}
+		FileOutputStream fout = new FileOutputStream(f);
+		for(int p=0; p<dna.length; p++) {
+			String s = String.valueOf(dna[p].code) + "\n";
+			fout.write(s.getBytes());
+		}
 	}
 	
 	public DNA[] generateDNA (int n, int length) {

@@ -4,9 +4,10 @@ import mpi.MPIException;
 
 public class ParallelKMeansDNA {
 	
-	public DNA[] runServer(DNA[] dnas, int k, int length) throws MPIException {
+	public DNA[] runServer(DNA[] dnas, int k) throws MPIException {
 		int size = MPI.COMM_WORLD.Size();
 		int totalDNA = dnas.length;
+		int length = dnas[0].code.length;
 		//make the initial centroids
 		DataGenerator dg = new DataGenerator();
 		DNA[] cs = dg.generateDNA(k, length);
