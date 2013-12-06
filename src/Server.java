@@ -4,6 +4,9 @@ import mpi.*;
 public class Server {
 	
 	public static void printPoints(Point[] points) {
+		if(points == null) {
+			return;
+		}
 		for(int i=0; i<points.length; i++) {
 			System.out.println("(" + points[i].x + ", " + points[i].y + ")");
 		}
@@ -16,9 +19,20 @@ public class Server {
 		}
 	}
 	
-	public static void processConsole(String request) {
+	public static void processConsole(String request) throws MPIException {
+		if(request.equals("test")) {
+			processConsole("launch parallel points 13 2 10 10");
+		}
+		if(request.equals("test2")) {
+			processConsole("launch parallel dna 13 2 12");
+		}
+		
 		if(request.startsWith("quit")) {
-			System.exit(0);
+			for(int i=1; i<MPI.COMM_WORLD.Size(); i++) {
+				MPI.COMM_WORLD.Send("quit".toCharArray(), 0, "quit".toCharArray().length, MPI.CHAR, i, i);
+			}
+			//MPI.Finalize();
+			MPI.COMM_WORLD.Abort(0);
 		}
 		
 		if(request.startsWith("launch")) {
@@ -40,16 +54,19 @@ public class Server {
 				int width = Integer.parseInt(args[5]);
 				int height = Integer.parseInt(args[6]);
 				Point[] ps = dg.generatePoints(numVals, width, height);
-				printPoints(ps);
 				if (!isParallel) {
+					
+					printPoints(ps);
 					SequentialKMeans seqKM = new SequentialKMeans();
 					System.out.println("Launching sequential k-means for " + numVals + " points, (k=" + k + ",width=" + width + ",height=" + height + ")");
 					Point[] centroids = seqKM.calculatePoints(ps, k);
 					printPoints(centroids);
 				} else {
-					//partition the points, and send to parallel nodes
 					System.out.println("Launching parallel k-means for " + numVals + " points, (k=" + k + ",width=" + width + ",height=" + height + ")");
-					//MPI_Reduce()
+					
+					ParallelKMeansPoints pkp = new ParallelKMeansPoints();
+					Point[] centroids = pkp.runServer(ps, k, width, height);
+					printPoints(centroids);
 				}
 			}
 			else {
@@ -65,12 +82,19 @@ public class Server {
 					System.out.println("Launching sequential k-means for " + numVals + " dnas, (k=" + k + ",length=" + length + ")");
 					DNA[] centroids = seqKM.calculateDNAs(ds, k);
 					printDNA(centroids);
+				} else {
+					System.out.println("Launching parallel k-means for " + numVals + " dna, (k=" + k + ",length=" + length + ")");
+					
+					ParallelKMeansDNA pkd = new ParallelKMeansDNA();
+					DNA[] centroids = pkd.runServer(ds, k, length);
+					printDNA(centroids);
+					
 				}
 			}
 		}
 	}
 	
-	public static void startShell() {
+	public static void startShell() throws MPIException {
 		String request = "";
 		
 		while(true) {
@@ -92,6 +116,28 @@ public class Server {
 		}
 	}
 	
+	
+	public static void beComputeNode() throws MPIException {
+		int rank = MPI.COMM_WORLD.Rank();
+		int size = MPI.COMM_WORLD.Size();
+		//wait to receive the data
+		char[] command = new char[100]; //100 character commands
+		MPI.COMM_WORLD.Recv(command, 0, command.length, MPI.CHAR, 0, rank);
+		String commandStr = String.valueOf(command);
+		String[] comArgs = commandStr.split(" ");
+		if(comArgs[0].equals("points")) {
+			ParallelKMeansPoints pkp = new ParallelKMeansPoints();
+			pkp.initialize(comArgs);
+		} else if(comArgs[0].equals("quit")) {
+			MPI.Finalize();
+			MPI.COMM_WORLD.Abort(0);
+		} else if(comArgs[0].equals("dna")) {
+			ParallelKMeansDNA pkd = new ParallelKMeansDNA();
+			pkd.initialize(comArgs);
+		}
+		
+	}
+	
 	public static void main (String args[]) throws MPIException {
 		MPI.Init(args);
 		int rank = MPI.COMM_WORLD.Rank();
@@ -103,7 +149,9 @@ public class Server {
 			startShell();
 		}
 		else {
-			//wait to receive the data
+			while(true) {
+				beComputeNode();
+			}
 		}
 		
 		MPI.Finalize();
